@@ -1,0 +1,13 @@
+{% macro render(items) -%}
+<div class="marks-grid">
+  {% for item in items %}
+    <div class="marks-cell">
+      <strong>{{ item.subject }}</strong>
+      <span>{{ item.marks_obtained }} / {{ item.max_marks }}</span>
+      <small>{{ item.grade or '-' }}</small>
+    </div>
+  {% else %}
+    <p>No marks published.</p>
+  {% endfor %}
+</div>
+{%- endmacro %}

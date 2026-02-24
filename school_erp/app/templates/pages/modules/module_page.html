@@ -1,0 +1,22 @@
+{% extends 'layouts/base.html' %}
+{% import 'components/notice_card.html' as notice_card %}
+{% import 'components/ai_drawer.html' as ai_drawer %}
+
+{% block title %}{{ module_title }}{% endblock %}
+
+{% block content %}
+<section class="hero-strip">
+  <h2>{{ module_title }}</h2>
+  <p>{{ module_key|replace('_', ' ')|capitalize }} workflows and management console.</p>
+</section>
+
+<section class="board-grid">
+  {{ notice_card.render(module_title ~ ' Workspace', 'This page is component-based and connected to /api/v1 endpoints for this module.') }}
+  <section class="board-card board-yellow">
+    <h3>API Endpoint</h3>
+    <code>/api/v1/{{ module_key|replace('_', '/') }}</code>
+  </section>
+</section>
+
+{{ ai_drawer.render() }}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% macro render(items) -%}
+<section class="board-card board-yellow">
+  <h3>Today's Agenda</h3>
+  <ul>
+    {% for item in items %}
+      <li>{{ item.title }}{% if item.starts_at %} - {{ item.starts_at[:16] }}{% endif %}</li>
+    {% else %}
+      <li>No events</li>
+    {% endfor %}
+  </ul>
+</section>
+{%- endmacro %}

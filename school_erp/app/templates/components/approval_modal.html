@@ -1,0 +1,10 @@
+{% macro render() -%}
+<div id="approval-modal" class="approval-modal hidden">
+  <div class="approval-card">
+    <h3>AI Approval Required</h3>
+    <p id="approval-content">Pending action details.</p>
+    <button class="btn">Approve</button>
+    <button class="btn btn-warn">Reject</button>
+  </div>
+</div>
+{%- endmacro %}

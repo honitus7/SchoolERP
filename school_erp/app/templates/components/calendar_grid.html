@@ -1,0 +1,13 @@
+{% macro render(items) -%}
+<section class="calendar-grid">
+  {% for item in items %}
+    <article class="calendar-cell">
+      <strong>{{ item.title }}</strong>
+      <small>{{ item.starts_at[:16] if item.starts_at else '' }}</small>
+      <span>{{ item.entry_type }}</span>
+    </article>
+  {% else %}
+    <article class="calendar-cell">No entries</article>
+  {% endfor %}
+</section>
+{%- endmacro %}

@@ -1,0 +1,6 @@
+{% macro render(title, value, tone='mint') -%}
+<article class="kpi-card kpi-{{ tone }}">
+  <p>{{ title }}</p>
+  <h3>{{ value }}</h3>
+</article>
+{%- endmacro %}

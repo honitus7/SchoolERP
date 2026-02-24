@@ -1,0 +1,7 @@
+{% macro render(status, due) -%}
+<article class="board-card board-orange">
+  <h3>Fees Status</h3>
+  <p>Status: <strong>{{ status }}</strong></p>
+  <p>Outstanding: <strong>{{ due }}</strong></p>
+</article>
+{%- endmacro %}

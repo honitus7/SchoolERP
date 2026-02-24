@@ -1,0 +1,10 @@
+{% macro render() -%}
+<aside class="ai-drawer">
+  <h3>AI Copilot</h3>
+  <form id="ai-form">
+    <textarea name="prompt" placeholder="Ask AI assistant..."></textarea>
+    <button type="button" class="btn" onclick="erpAskAI()">Send</button>
+  </form>
+  <pre id="ai-result"></pre>
+</aside>
+{%- endmacro %}

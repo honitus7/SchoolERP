@@ -1,0 +1,18 @@
+{% macro render(rows) -%}
+<table class="erp-table">
+  <thead>
+    <tr><th>Student</th><th>Status</th><th>Remark</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <td>{{ row.student_id }}</td>
+        <td><span class="status status-{{ row.status }}">{{ row.status }}</span></td>
+        <td>{{ row.remarks or '-' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3">No attendance records yet</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{%- endmacro %}

@@ -1,0 +1,20 @@
+{% macro render(role) -%}
+<nav class="side-nav">
+  <a href="{{ url_for('dashboard.role_dashboard', role=role) }}">Overview</a>
+  <a href="{{ url_for('attendance.attendance_page') }}">Attendance</a>
+  <a href="{{ url_for('exams.exams_page') }}">Exams</a>
+  <a href="{{ url_for('fees.fees_page') }}">Fees</a>
+  <a href="{{ url_for('notices.notices_page') }}">Notice Board</a>
+  <a href="{{ url_for('events.events_page') }}">Events</a>
+  <a href="{{ url_for('reminders.reminders_page') }}">Reminders</a>
+  <a href="{{ url_for('messaging.messaging_page') }}">DMs / Groups</a>
+  <a href="{{ url_for('calendar.calendar_page') }}">Calendar</a>
+  <a href="{{ url_for('admissions.admissions_page') }}">Admissions</a>
+  <a href="{{ url_for('transport.transport_page') }}">Transport</a>
+  <a href="{{ url_for('payroll.payroll_page') }}">Payroll</a>
+  <a href="{{ url_for('library.library_page') }}">Library</a>
+  <a href="{{ url_for('hostel.hostel_page') }}">Hostel</a>
+  <a href="{{ url_for('inventory.inventory_page') }}">Inventory</a>
+  <a href="{{ url_for('coaching.coaching_page') }}">Coaching</a>
+</nav>
+{%- endmacro %}

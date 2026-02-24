@@ -1,0 +1,14 @@
+{% macro render(user) -%}
+<header class="top-nav">
+  <div>
+    <span class="brand-pill">Classroom Hub</span>
+    <h1 class="brand-title">School ERP</h1>
+  </div>
+  <div class="top-actions">
+    {% if user %}
+      <span class="user-chip">{{ user.full_name }}</span>
+    {% endif %}
+    <a class="btn btn-warn" href="{{ url_for('auth.logout_page') }}">Logout</a>
+  </div>
+</header>
+{%- endmacro %}

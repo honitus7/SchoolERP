@@ -1,0 +1,9 @@
+{% for item in messages %}
+<div class="message-row">
+  <strong>{{ item.sender_id }}</strong>
+  <span>{{ item.body }}</span>
+  <small>{{ item.created_at }}</small>
+</div>
+{% else %}
+<div class="message-row">No messages.</div>
+{% endfor %}

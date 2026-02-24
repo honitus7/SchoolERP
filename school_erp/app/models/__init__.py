@@ -1,0 +1,9 @@
+from app.models.academic import *  # noqa: F401,F403
+from app.models.ai_audit import *  # noqa: F401,F403
+from app.models.attendance import *  # noqa: F401,F403
+from app.models.coaching import *  # noqa: F401,F403
+from app.models.communication import *  # noqa: F401,F403
+from app.models.enterprise import *  # noqa: F401,F403
+from app.models.exams import *  # noqa: F401,F403
+from app.models.finance import *  # noqa: F401,F403
+from app.models.identity import *  # noqa: F401,F403

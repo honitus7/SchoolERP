@@ -1,0 +1,8 @@
+{% macro render() -%}
+<section class="board-card board-pink">
+  <h3>DMs / Groups</h3>
+  <div id="chat-panel" hx-get="/api/v1/messages/threads/1/messages" hx-trigger="load, every 5s" hx-target="#chat-feed" hx-swap="innerHTML">
+    <div id="chat-feed">Start a thread from messaging module.</div>
+  </div>
+</section>
+{%- endmacro %}

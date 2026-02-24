@@ -1,0 +1,43 @@
+{% extends 'layouts/base.html' %}
+{% import 'components/kpi_card.html' as kpi_card %}
+{% import 'components/agenda_card.html' as agenda_card %}
+{% import 'components/calendar_grid.html' as calendar_grid %}
+{% import 'components/chat_panel.html' as chat_panel %}
+{% import 'components/ai_drawer.html' as ai_drawer %}
+
+{% block title %}{{ role|capitalize }} Dashboard{% endblock %}
+
+{% block content %}
+<section class="hero-strip">
+  <h2>{{ role|capitalize }} Overview</h2>
+  <p>Attendance, upcoming tasks, report updates, fees, notices, messages, and AI support.</p>
+</section>
+
+<section class="kpi-grid">
+  {{ kpi_card.render('Students', dashboard.kpis.students, 'mint') }}
+  {{ kpi_card.render('Notices', dashboard.kpis.notices, 'blue') }}
+  {{ kpi_card.render('Events', dashboard.kpis.events, 'yellow') }}
+  {{ kpi_card.render('Outstanding Dues', dashboard.kpis.dues, 'orange') }}
+  {{ kpi_card.render('Attendance Entries', dashboard.kpis.attendance_records, 'pink') }}
+</section>
+
+<section class="board-grid">
+  {{ agenda_card.render(dashboard.agenda) }}
+  <section class="board-card board-green">
+    <h3>Reminders</h3>
+    <ul>
+      {% for reminder in dashboard.reminders %}
+        <li>{{ reminder.title }} - {{ reminder.remind_at[:16] }}</li>
+      {% else %}
+        <li>No reminders</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {{ chat_panel.render() }}
+</section>
+
+<h3>Calendar Snapshot</h3>
+{{ calendar_grid.render(dashboard.agenda) }}
+
+{{ ai_drawer.render() }}
+{% endblock %}
