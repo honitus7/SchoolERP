@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from functools import wraps
 
+from flask import abort, request
+
 from app.core.auth import current_user
 from app.core.responses import fail
 
@@ -16,7 +18,9 @@ def role_required(*roles: str):
             if not user:
                 return fail("Authentication required", status=401, code="unauthorized")
             if not any(role.name.lower() in role_set for role in user.roles):
-                return fail("Forbidden", status=403, code="forbidden")
+                if request.path.startswith("/api/"):
+                    return fail("Forbidden", status=403, code="forbidden")
+                abort(403)
             return view(*args, **kwargs)
 
         return wrapped

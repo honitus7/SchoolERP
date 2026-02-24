@@ -11,7 +11,6 @@ HIGH_RISK_ACTIONS = {
 
 MEDIUM_RISK_ACTIONS = {
     "create_notice",
-    "create_reminder",
     "schedule_event",
 }
 

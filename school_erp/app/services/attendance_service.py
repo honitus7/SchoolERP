@@ -22,9 +22,17 @@ def create_session(tenant_id: int, class_id: int, section_id: int | None, subjec
 
 
 def upsert_records(tenant_id: int, session_id: int, records: list[dict]):
+    session = AttendanceSession.query.filter_by(id=session_id, tenant_id=tenant_id).first()
+    if not session:
+        raise ValueError("Attendance session not found")
+
     for item in records:
         student_id = item["student_id"]
-        rec = AttendanceRecord.query.filter_by(session_id=session_id, student_id=student_id).first()
+        rec = AttendanceRecord.query.filter_by(
+            tenant_id=tenant_id,
+            session_id=session_id,
+            student_id=student_id,
+        ).first()
         if not rec:
             rec = AttendanceRecord(
                 tenant_id=tenant_id,

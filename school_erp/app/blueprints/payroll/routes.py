@@ -4,10 +4,12 @@ from flask import render_template
 
 from app.blueprints.payroll import bp
 from app.core.auth import current_user, login_required
+from app.core.rbac import role_required
 
 
 @bp.get("/")
 @login_required
+@role_required("admin")
 def payroll_page():
     user = current_user()
     return render_template(

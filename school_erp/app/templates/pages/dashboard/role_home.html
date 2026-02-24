@@ -5,6 +5,26 @@
 {% block content %}
 <section class="hero-strip">
   <h2>{{ role|capitalize }} Portal</h2>
-  <p>Use the left navigation to manage workflows.</p>
+  <p>Manage everyday academic and operational workflows from your dashboard.</p>
+</section>
+
+<section class="board-grid">
+  <article class="board-card board-blue">
+    <h3>Start Here</h3>
+    <p>Open your personalized overview for live updates and priorities.</p>
+    <a class="btn btn-small" href="{{ url_for('dashboard.role_dashboard', role=role) }}">Open Dashboard</a>
+  </article>
+  <article class="board-card board-green">
+    <h3>Daily Operations</h3>
+    <ul class="panel-list">
+      <li>Manage attendance and schedules</li>
+      <li>Review notices, reminders, and messages</li>
+      <li>Track reports, fees, and outcomes</li>
+    </ul>
+  </article>
+  <article class="board-card board-yellow">
+    <h3>AI Copilot</h3>
+    <p>Ask questions in natural language and route approved actions quickly.</p>
+  </article>
 </section>
 {% endblock %}

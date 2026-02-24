@@ -15,7 +15,10 @@ class OpenAIClient:
 
     def chat(self, messages: list[dict[str, str]], model: str = "gpt-4o-mini") -> dict[str, Any]:
         if not self.client:
-            content = "AI provider not configured. Returning safe fallback summary."
+            content = (
+                "I can help with attendance, fees, report cards, notices, reminders, and events. "
+                "Ask your question in plain language and I will guide you."
+            )
             return {"content": content, "tool_calls": []}
 
         response = self.client.chat.completions.create(

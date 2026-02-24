@@ -13,6 +13,27 @@
   <p>Attendance, upcoming tasks, report updates, fees, notices, messages, and AI support.</p>
 </section>
 
+<section id="dashboard-live" data-role="{{ role }}" class="live-grid">
+  <article class="board-card board-blue">
+    <h3>Notice Feed</h3>
+    <ul id="live-notices" class="live-list">
+      <li>Loading...</li>
+    </ul>
+  </article>
+  <article class="board-card board-yellow">
+    <h3>Upcoming Events</h3>
+    <ul id="live-events" class="live-list">
+      <li>Loading...</li>
+    </ul>
+  </article>
+  <article class="board-card board-pink">
+    <h3>AI Approvals</h3>
+    <ul id="live-ai-approvals" class="live-list">
+      <li>Loading...</li>
+    </ul>
+  </article>
+</section>
+
 <section class="kpi-grid">
   {{ kpi_card.render('Students', dashboard.kpis.students, 'mint') }}
   {{ kpi_card.render('Notices', dashboard.kpis.notices, 'blue') }}

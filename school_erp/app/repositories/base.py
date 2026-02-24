@@ -16,7 +16,7 @@ class BaseRepository:
         return obj
 
     def get(self, obj_id: int):
-        return self.model.query.get(obj_id)
+        return db.session.get(self.model, obj_id)
 
     def list(self, **filters):
         query = self.model.query
@@ -25,7 +25,7 @@ class BaseRepository:
         return query.all()
 
     def update(self, obj_id: int, data: dict[str, Any]):
-        obj = self.model.query.get(obj_id)
+        obj = db.session.get(self.model, obj_id)
         if not obj:
             return None
         for key, value in data.items():

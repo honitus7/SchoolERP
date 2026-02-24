@@ -19,6 +19,7 @@ class BaseConfig:
         str(Path(__file__).resolve().parent / "static" / "uploads"),
     )
     RATELIMIT_DEFAULT = "120 per minute"
+    RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 

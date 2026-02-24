@@ -1,22 +1,143 @@
 {% extends 'layouts/base.html' %}
-{% import 'components/notice_card.html' as notice_card %}
 {% import 'components/ai_drawer.html' as ai_drawer %}
 
 {% block title %}{{ module_title }}{% endblock %}
 
 {% block content %}
+{% set module_meta = {
+  'attendance': {
+    'description': 'Track daily attendance with manual and OCR-assisted workflows, corrections, and compliance reporting.',
+    'highlights': ['Daily class sessions', 'OCR import review', 'Teacher self-attendance'],
+    'guidance': ['Create the attendance session first', 'Record or import attendance', 'Review the latest reports']
+  },
+  'exams': {
+    'description': 'Plan assessments, publish schedules, record marks, and complete exam lifecycle management.',
+    'highlights': ['Exam planning', 'Marks entry', 'Publish outcomes'],
+    'guidance': ['Create exam', 'Schedule dates', 'Add marks and publish']
+  },
+  'report_cards': {
+    'description': 'Review student performance and generate downloadable report cards for families and records.',
+    'highlights': ['Latest performance view', 'Subject-wise marks', 'PDF downloads'],
+    'guidance': ['Search by student', 'Validate marks', 'Share published report']
+  },
+  'fees': {
+    'description': 'Manage fee structures, installments, receipts, and real-time outstanding dues visibility.',
+    'highlights': ['Fee planning', 'Installments', 'Receipts and dues'],
+    'guidance': ['Define structure', 'Create installments', 'Track payments']
+  },
+  'notices': {
+    'description': 'Publish role-targeted notices with media support and institution-wide communication control.',
+    'highlights': ['Audience targeting', 'Media notices', 'Fast publishing'],
+    'guidance': ['Create clear title', 'Select audience', 'Publish and monitor visibility']
+  },
+  'events': {
+    'description': 'Coordinate school events, competitions, and schedule updates for all stakeholders.',
+    'highlights': ['Event planning', 'Timeline tracking', 'Calendar synchronization'],
+    'guidance': ['Create event details', 'Set timeline', 'Track upcoming list']
+  },
+  'reminders': {
+    'description': 'Set reminders for tasks, deadlines, and critical actions with role-aware visibility.',
+    'highlights': ['Task reminders', 'Time-based nudges', 'Role filtering'],
+    'guidance': ['Create reminder', 'Set exact time', 'Verify dashboard visibility']
+  },
+  'messaging': {
+    'description': 'Run private and group communication with near real-time refresh and unread tracking.',
+    'highlights': ['Direct messaging', 'Group threads', 'Read tracking'],
+    'guidance': ['Create thread', 'Add members', 'Send updates']
+  },
+  'calendar': {
+    'description': 'View unified timeline for events and reminders in one coordinated planning space.',
+    'highlights': ['Timeline view', 'Events and reminders', 'Role-aware visibility'],
+    'guidance': ['Review upcoming items', 'Coordinate schedules', 'Resolve conflicts early']
+  },
+  'admissions': {
+    'description': 'Capture admission applications, update statuses, and maintain decision history.',
+    'highlights': ['Application intake', 'Status updates', 'Decision tracking'],
+    'guidance': ['Create application', 'Review candidate data', 'Update status']
+  },
+  'transport': {
+    'description': 'Manage transport routes, vehicles, and stop sequencing for safe daily operations.',
+    'highlights': ['Route setup', 'Vehicle records', 'Stop management'],
+    'guidance': ['Create route', 'Add vehicle', 'Define stop order']
+  },
+  'payroll': {
+    'description': 'Prepare payroll cycles and entries for staff compensation workflows.',
+    'highlights': ['Cycle planning', 'Payroll entries', 'Finance readiness'],
+    'guidance': ['Create cycle', 'Add payroll entries', 'Review totals']
+  },
+  'library': {
+    'description': 'Handle books and loan activity with efficient tracking for school resources.',
+    'highlights': ['Catalog records', 'Loan operations', 'Return tracking'],
+    'guidance': ['Add books', 'Issue loans', 'Monitor due dates']
+  },
+  'hostel': {
+    'description': 'Manage hostels and room capacities with allocation-ready data.',
+    'highlights': ['Hostel setup', 'Room management', 'Capacity visibility'],
+    'guidance': ['Create hostel', 'Add rooms', 'Plan allocations']
+  },
+  'inventory': {
+    'description': 'Track inventory and stock movement for classrooms, labs, and operations.',
+    'highlights': ['Item catalog', 'Stock movement', 'Usage notes'],
+    'guidance': ['Create item', 'Record stock in/out', 'Review movement history']
+  },
+  'coaching': {
+    'description': 'Run coaching courses, batches, and test series with score tracking.',
+    'highlights': ['Course setup', 'Batch operations', 'Test attempt analytics'],
+    'guidance': ['Create course', 'Launch batch', 'Record attempts']
+  }
+} %}
+{% set meta = module_meta.get(module_key, {
+  'description': module_title ~ ' operations and workflows.',
+  'highlights': ['Operational readiness', 'Action workflows', 'Live records'],
+  'guidance': ['Review workflows', 'Execute actions', 'Track outcomes']
+}) %}
+{% set active_role = role if role is defined else current_role %}
+
 <section class="hero-strip">
   <h2>{{ module_title }}</h2>
-  <p>{{ module_key|replace('_', ' ')|capitalize }} workflows and management console.</p>
+  <p>{{ meta.description }}</p>
 </section>
 
-<section class="board-grid">
-  {{ notice_card.render(module_title ~ ' Workspace', 'This page is component-based and connected to /api/v1 endpoints for this module.') }}
-  <section class="board-card board-yellow">
-    <h3>API Endpoint</h3>
-    <code>/api/v1/{{ module_key|replace('_', '/') }}</code>
-  </section>
+{% if active_role in ['teacher', 'student'] %}
+<section class="board-card board-green">
+  <h3>{{ active_role|capitalize }} Guidance</h3>
+  {% if active_role == 'teacher' %}
+    <p>Use dropdown selectors to quickly pick class, student, exam, and subject details. The workspace is organized for fast daily classroom operations.</p>
+  {% else %}
+    <p>Your view is already filtered to your own academic records. Open summaries and results directly without searching through other student data.</p>
+  {% endif %}
 </section>
+{% endif %}
+
+<section class="board-grid module-intro-grid">
+  <article class="board-card board-yellow">
+    <h3>Core Outcomes</h3>
+    <ul class="panel-list">
+      {% for item in meta.highlights %}
+        <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article class="board-card board-blue">
+    <h3>Recommended Flow</h3>
+    <ol class="panel-list ordered">
+      {% for item in meta.guidance %}
+        <li>{{ item }}</li>
+      {% endfor %}
+    </ol>
+  </article>
+</section>
+
+<section class="section-head">
+  <h3>Workflows</h3>
+  <p>Complete actions and track records in one place.</p>
+</section>
+<section
+  id="module-console"
+  class="module-console"
+  data-module-key="{{ module_key }}"
+  data-role="{{ role if role is defined else current_role }}"
+></section>
 
 {{ ai_drawer.render() }}
 {% endblock %}

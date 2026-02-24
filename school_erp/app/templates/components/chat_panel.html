@@ -1,8 +1,12 @@
 {% macro render() -%}
 <section class="board-card board-pink">
-  <h3>DMs / Groups</h3>
-  <div id="chat-panel" hx-get="/api/v1/messages/threads/1/messages" hx-trigger="load, every 5s" hx-target="#chat-feed" hx-swap="innerHTML">
-    <div id="chat-feed">Start a thread from messaging module.</div>
-  </div>
+  <h3>Communication Center</h3>
+  <p>Coordinate with teachers, parents, and students through direct and group conversations.</p>
+  <ul class="panel-list">
+    <li>Create role-specific threads</li>
+    <li>Share quick updates and announcements</li>
+    <li>Track unread activity with live refresh</li>
+  </ul>
+  <a class="btn btn-small" href="/messaging/">Open Messages</a>
 </section>
 {%- endmacro %}

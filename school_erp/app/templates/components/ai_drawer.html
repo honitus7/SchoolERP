@@ -1,10 +1,12 @@
 {% macro render() -%}
 <aside class="ai-drawer">
   <h3>AI Copilot</h3>
+  <p class="ai-subtitle">Ask questions, request guidance, or trigger supported workflows with one prompt.</p>
+  <div id="ai-chat-log" class="ai-chat-log" aria-live="polite"></div>
   <form id="ai-form">
-    <textarea name="prompt" placeholder="Ask AI assistant..."></textarea>
-    <button type="button" class="btn" onclick="erpAskAI()">Send</button>
+    <textarea name="prompt" placeholder="Example: Create a parent notice for tomorrow's math test at 9 AM"></textarea>
+    <button type="button" class="btn" onclick="erpAskAI()">Send Prompt</button>
   </form>
-  <pre id="ai-result"></pre>
+  <div id="ai-result" class="ai-result"></div>
 </aside>
 {%- endmacro %}
