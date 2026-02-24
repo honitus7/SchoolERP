@@ -1,0 +1,1 @@
+-r school_erp/requirements.txt

@@ -7,6 +7,11 @@ function toNumber(value) {
 function parseByType(raw, type) {
   if (type === "number") return toNumber(raw);
   if (type === "entity-select") return toNumber(raw) ?? raw;
+  if (type === "entity-multi-select") {
+    return (Array.isArray(raw) ? raw : [])
+      .map((value) => toNumber(value))
+      .filter((value) => value !== null);
+  }
   if (type === "csv-int") {
     return String(raw || "")
       .split(",")
@@ -24,6 +29,11 @@ const ENTITY_SOURCES = {
     valueKey: "id",
     label: (row) => `${row.name} (${row.academic_year})`,
   },
+  sections: {
+    url: "/api/v1/directory/sections",
+    valueKey: "id",
+    label: (row) => `Class ${row.class_id} - Section ${row.name}`,
+  },
   students: {
     url: "/api/v1/directory/students",
     valueKey: "id",
@@ -39,6 +49,12 @@ const ENTITY_SOURCES = {
     valueKey: "id",
     label: (row) => `${row.full_name}${row.username ? ` (${row.username})` : ""}`,
   },
+  teacher_users: {
+    url: "/api/v1/directory/users",
+    valueKey: "id",
+    filter: (row) => Array.isArray(row.roles) && row.roles.some((x) => String(x).toLowerCase() === "teacher"),
+    label: (row) => `${row.full_name}${row.username ? ` (${row.username})` : ""}`,
+  },
   attendance_sessions: {
     url: "/api/v1/attendance/sessions",
     valueKey: "id",
@@ -49,10 +65,82 @@ const ENTITY_SOURCES = {
     valueKey: "id",
     label: (row) => `Batch #${row.id} - ${row.parse_status} (${row.line_count || 0} lines)`,
   },
+  ocr_lines: {
+    url: (ctx) => (ctx.batch_id ? `/api/v1/attendance/ocr/batches/${ctx.batch_id}` : null),
+    listKey: "lines",
+    valueKey: "id",
+    emptyHint: "Select OCR Batch first",
+    label: (row) => `Line #${row.id} - ${(row.raw_text || "").slice(0, 56)}`,
+  },
   exams: {
     url: "/api/v1/exams",
     valueKey: "id",
     label: (row) => `${row.name} (${row.status})`,
+  },
+  fee_structures: {
+    url: "/api/v1/fees/structures",
+    valueKey: "id",
+    label: (row) => `${row.title} (Class ${row.class_id})`,
+  },
+  fee_installments: {
+    url: "/api/v1/fees/installments",
+    valueKey: "id",
+    label: (row) => `${row.title} (Due ${row.due_date})`,
+  },
+  fee_ledgers: {
+    url: "/api/v1/fees/ledgers",
+    valueKey: "id",
+    label: (row) => `${row.student_name} - ${row.installment_title} (${row.status})`,
+  },
+  admissions_forms: {
+    url: "/api/v1/admissions/forms",
+    valueKey: "id",
+    label: (row) => `${row.student_name} (${row.status})`,
+  },
+  transport_routes: {
+    url: "/api/v1/transport/routes",
+    valueKey: "id",
+    label: (row) => `${row.name} (${row.shift})`,
+  },
+  payroll_cycles: {
+    url: "/api/v1/payroll/cycles",
+    valueKey: "id",
+    label: (row) => `${row.month_label} (${row.status})`,
+  },
+  books: {
+    url: "/api/v1/library/books",
+    valueKey: "id",
+    label: (row) => `${row.title} - ${row.author}`,
+  },
+  book_copies: {
+    url: "/api/v1/library/copies",
+    valueKey: "id",
+    label: (row) => `${row.copy_code} (${row.book_title || `Book ${row.book_id}`})`,
+  },
+  hostels: {
+    url: "/api/v1/hostel/hostels",
+    valueKey: "id",
+    label: (row) => row.name,
+  },
+  inventory_items: {
+    url: "/api/v1/inventory/items",
+    valueKey: "id",
+    label: (row) => `${row.name}${row.sku ? ` (${row.sku})` : ""}`,
+  },
+  courses: {
+    url: "/api/v1/coaching/courses",
+    valueKey: "id",
+    label: (row) => `${row.title}${row.code ? ` (${row.code})` : ""}`,
+  },
+  coaching_batches: {
+    url: "/api/v1/coaching/batches",
+    valueKey: "id",
+    label: (row) => `${row.name}${row.timing ? ` - ${row.timing}` : ""}`,
+  },
+  test_series: {
+    url: "/api/v1/coaching/test-series",
+    valueKey: "id",
+    label: (row) => `${row.title}${row.total_marks ? ` (${row.total_marks})` : ""}`,
   },
   threads: {
     url: "/api/v1/messages/threads",
@@ -104,6 +192,10 @@ function fieldTemplate(actionKey, field) {
     return `<label class="field"><span>${field.label}</span><select id="${id}" name="${field.name}" data-entity-source="${field.source}" ${required}>${blank}<option value="">Loading options...</option></select>${help}</label>`;
   }
 
+  if (field.type === "entity-multi-select") {
+    return `<label class="field"><span>${field.label}</span><select id="${id}" name="${field.name}" data-entity-source="${field.source}" multiple ${required}></select>${help}</label>`;
+  }
+
   if (field.type === "textarea") {
     return `<label class="field"><span>${field.label}</span><textarea id="${id}" name="${field.name}" ${required} ${placeholder}></textarea>${help}</label>`;
   }
@@ -117,10 +209,11 @@ function getFormValues(form, fields) {
   for (const field of fields) {
     const el = form.querySelector(`[name="${field.name}"]`);
     if (!el) continue;
-    const raw = el.value;
+    const raw = field.type === "entity-multi-select" ? Array.from(el.selectedOptions || []).map((x) => x.value) : el.value;
     const parsed = parseByType(raw, field.valueType || field.type);
+    const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
 
-    if (parsed === "" || parsed === null || parsed === undefined) {
+    if (parsed === "" || parsed === null || parsed === undefined || isEmptyArray) {
       if (field.required) {
         throw new Error(`${field.label} is required`);
       }
@@ -188,14 +281,32 @@ function isRoleAllowed(item, role) {
   return roles.includes(role);
 }
 
-async function loadEntityOptions(sourceKey) {
+function resolveEntityUrl(source, context = {}) {
+  if (!source) return null;
+  if (typeof source.url === "function") return source.url(context);
+  return source.url || null;
+}
+
+async function loadEntityOptions(sourceKey, context = {}) {
   if (!sourceKey || !ENTITY_SOURCES[sourceKey]) return [];
-  if (ENTITY_CACHE[sourceKey]) return ENTITY_CACHE[sourceKey];
 
   const source = ENTITY_SOURCES[sourceKey];
-  const response = await apiRequest(source.url, { method: "GET" });
-  const rows = Array.isArray(response.data) ? response.data : [];
-  ENTITY_CACHE[sourceKey] = rows;
+  const resolvedUrl = resolveEntityUrl(source, context);
+  if (!resolvedUrl) return [];
+
+  const cacheKey = `${sourceKey}::${resolvedUrl}`;
+  if (ENTITY_CACHE[cacheKey]) return ENTITY_CACHE[cacheKey];
+
+  const response = await apiRequest(resolvedUrl, { method: "GET" });
+  let rows = response.data;
+  if (source.listKey) {
+    rows = rows?.[source.listKey];
+  }
+  rows = Array.isArray(rows) ? rows : [];
+  if (typeof source.filter === "function") {
+    rows = rows.filter((row) => source.filter(row));
+  }
+  ENTITY_CACHE[cacheKey] = rows;
   return rows;
 }
 
@@ -205,8 +316,19 @@ function invalidateEntityCache() {
 
 async function hydrateEntitySelects(form, fields, role) {
   if (!form || !Array.isArray(fields)) return;
+  const context = {};
   for (const field of fields) {
-    if (field.type !== "entity-select") continue;
+    const sourceEl = form.querySelector(`[name="${field.name}"]`);
+    if (!sourceEl) continue;
+    if (field.type === "entity-multi-select") {
+      context[field.name] = Array.from(sourceEl.selectedOptions || []).map((opt) => opt.value);
+      continue;
+    }
+    context[field.name] = sourceEl.value;
+  }
+
+  for (const field of fields) {
+    if (!["entity-select", "entity-multi-select"].includes(field.type)) continue;
     if (!isRoleAllowed(field, role)) continue;
 
     const select = form.querySelector(`select[name="${field.name}"]`);
@@ -215,19 +337,38 @@ async function hydrateEntitySelects(form, fields, role) {
     const source = ENTITY_SOURCES[field.source];
     if (!source) continue;
 
+    const firstOption = field.required ? `Select ${field.label}` : "Optional";
+    const resolvedUrl = resolveEntityUrl(source, context);
+    if (!resolvedUrl) {
+      if (field.type === "entity-multi-select") {
+        select.innerHTML = "";
+      } else {
+        select.innerHTML = `<option value="">${source.emptyHint || firstOption}</option>`;
+      }
+      continue;
+    }
+
     try {
-      const rows = await loadEntityOptions(field.source);
-      const selected = select.value;
-      const firstOption = field.required ? `Select ${field.label}` : "Optional";
+      const rows = await loadEntityOptions(field.source, context);
+      const selected = field.type === "entity-multi-select"
+        ? Array.from(select.selectedOptions || []).map((opt) => opt.value)
+        : select.value;
       const options = rows
         .map((row) => `<option value="${row[source.valueKey]}">${source.label(row)}</option>`)
         .join("");
-      select.innerHTML = `<option value="">${firstOption}</option>${options}`;
-
-      if (selected && select.querySelector(`option[value="${selected}"]`)) {
-        select.value = selected;
-      } else if (field.autoSelectFirst && rows.length) {
-        select.value = String(rows[0][source.valueKey]);
+      if (field.type === "entity-multi-select") {
+        select.innerHTML = options;
+        for (const value of selected) {
+          const option = select.querySelector(`option[value="${value}"]`);
+          if (option) option.selected = true;
+        }
+      } else {
+        select.innerHTML = `<option value="">${firstOption}</option>${options}`;
+        if (selected && select.querySelector(`option[value="${selected}"]`)) {
+          select.value = selected;
+        } else if (field.autoSelectFirst && rows.length) {
+          select.value = String(rows[0][source.valueKey]);
+        }
       }
     } catch (_err) {
       select.innerHTML = `<option value="">Options unavailable</option>`;
@@ -255,7 +396,13 @@ const MODULE_CONFIG = {
             required: true,
             autoSelectFirst: true,
           },
-          { name: "section_id", label: "Section ID", type: "number" },
+          {
+            name: "section_id",
+            label: "Section",
+            type: "entity-select",
+            source: "sections",
+            valueType: "number",
+          },
           {
             name: "subject_id",
             label: "Subject",
@@ -396,7 +543,15 @@ const MODULE_CONFIG = {
             valueType: "number",
             required: true,
           },
-          { name: "line_id", label: "Line ID", type: "number", required: true },
+          {
+            name: "line_id",
+            label: "OCR Line",
+            type: "entity-select",
+            source: "ocr_lines",
+            valueType: "number",
+            required: true,
+            help: "Choose a line from the selected OCR batch",
+          },
           {
             name: "student_id",
             label: "Student",
@@ -488,7 +643,7 @@ const MODULE_CONFIG = {
         columns: [
           { key: "id", label: "ID" },
           { key: "session_id", label: "Session" },
-          { key: "student_id", label: "Student" },
+          { key: "student_name", label: "Student" },
           { key: "status", label: "Status" },
           { key: "session_date", label: "Date" },
         ],
@@ -524,7 +679,6 @@ const MODULE_CONFIG = {
         url: "/api/v1/attendance/my-summary",
         roles: ["parent", "student"],
         columns: [
-          { key: "student_id", label: "Student ID" },
           { key: "student_name", label: "Student Name" },
           { key: "totals", label: "Totals" },
         ],
@@ -855,7 +1009,15 @@ const MODULE_CONFIG = {
         url: "/api/v1/fees/structures",
         method: "POST",
         fields: [
-          { name: "class_id", label: "Class ID", type: "number", required: true },
+          {
+            name: "class_id",
+            label: "Class",
+            type: "entity-select",
+            source: "classes",
+            valueType: "number",
+            required: true,
+            autoSelectFirst: true,
+          },
           { name: "title", label: "Title", type: "text", required: true },
           { name: "total_amount", label: "Total Amount", type: "number", required: true },
         ],
@@ -866,7 +1028,15 @@ const MODULE_CONFIG = {
         url: "/api/v1/fees/installments",
         method: "POST",
         fields: [
-          { name: "structure_id", label: "Structure ID", type: "number", required: true },
+          {
+            name: "structure_id",
+            label: "Fee Structure",
+            type: "entity-select",
+            source: "fee_structures",
+            valueType: "number",
+            required: true,
+            autoSelectFirst: true,
+          },
           { name: "title", label: "Title", type: "text", required: true },
           { name: "amount", label: "Amount", type: "number", required: true },
           { name: "due_date", label: "Due Date", type: "date", required: true },
@@ -878,7 +1048,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/fees/receipts",
         method: "POST",
         fields: [
-          { name: "ledger_id", label: "Ledger ID", type: "number", required: true },
+          {
+            name: "ledger_id",
+            label: "Ledger",
+            type: "entity-select",
+            source: "fee_ledgers",
+            valueType: "number",
+            required: true,
+          },
           { name: "amount", label: "Amount", type: "number", required: true },
           { name: "payment_mode", label: "Payment Mode", type: "text", placeholder: "cash" },
           { name: "reference_no", label: "Reference", type: "text" },
@@ -889,7 +1066,16 @@ const MODULE_CONFIG = {
         label: "Check Student Dues",
         url: "/api/v1/fees/:student_id/dues",
         method: "GET",
-        fields: [{ name: "student_id", label: "Student ID", type: "number", required: true }],
+        fields: [
+          {
+            name: "student_id",
+            label: "Student",
+            type: "entity-select",
+            source: "students",
+            valueType: "number",
+            required: true,
+          },
+        ],
         build(values) {
           return { method: "GET", url: `/api/v1/fees/${values.student_id}/dues` };
         },
@@ -1033,10 +1219,11 @@ const MODULE_CONFIG = {
           { name: "title", label: "Title", type: "text" },
           {
             name: "member_ids",
-            label: "Member IDs",
-            type: "text",
-            valueType: "csv-int",
-            help: "Comma-separated user IDs, e.g. 2,3,4",
+            label: "Members",
+            type: "entity-multi-select",
+            source: "users",
+            valueType: "entity-multi-select",
+            help: "Select one or more users",
             required: true,
           },
         ],
@@ -1047,7 +1234,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/messages/threads/:thread_id/messages",
         method: "POST",
         fields: [
-          { name: "thread_id", label: "Thread ID", type: "number", required: true },
+          {
+            name: "thread_id",
+            label: "Thread",
+            type: "entity-select",
+            source: "threads",
+            valueType: "number",
+            required: true,
+          },
           { name: "body", label: "Message", type: "textarea", required: true },
         ],
         build(values) {
@@ -1063,7 +1257,16 @@ const MODULE_CONFIG = {
         label: "Fetch Thread Messages",
         url: "/api/v1/messages/threads/:thread_id/messages",
         method: "GET",
-        fields: [{ name: "thread_id", label: "Thread ID", type: "number", required: true }],
+        fields: [
+          {
+            name: "thread_id",
+            label: "Thread",
+            type: "entity-select",
+            source: "threads",
+            valueType: "number",
+            required: true,
+          },
+        ],
         build(values) {
           return {
             method: "GET",
@@ -1124,7 +1327,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/admissions/forms/:form_id/status",
         method: "PATCH",
         fields: [
-          { name: "form_id", label: "Form ID", type: "number", required: true },
+          {
+            name: "form_id",
+            label: "Admission Form",
+            type: "entity-select",
+            source: "admissions_forms",
+            valueType: "number",
+            required: true,
+          },
           { name: "status", label: "Status", type: "text", required: true },
         ],
         build(values) {
@@ -1180,7 +1390,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/transport/stops",
         method: "POST",
         fields: [
-          { name: "route_id", label: "Route ID", type: "number", required: true },
+          {
+            name: "route_id",
+            label: "Route",
+            type: "entity-select",
+            source: "transport_routes",
+            valueType: "number",
+            required: true,
+          },
           { name: "stop_name", label: "Stop Name", type: "text", required: true },
           { name: "stop_order", label: "Order", type: "number", required: true },
         ],
@@ -1239,8 +1456,22 @@ const MODULE_CONFIG = {
         url: "/api/v1/payroll/entries",
         method: "POST",
         fields: [
-          { name: "cycle_id", label: "Cycle ID", type: "number", required: true },
-          { name: "teacher_user_id", label: "Teacher User ID", type: "number", required: true },
+          {
+            name: "cycle_id",
+            label: "Payroll Cycle",
+            type: "entity-select",
+            source: "payroll_cycles",
+            valueType: "number",
+            required: true,
+          },
+          {
+            name: "teacher_user_id",
+            label: "Teacher",
+            type: "entity-select",
+            source: "teacher_users",
+            valueType: "number",
+            required: true,
+          },
           { name: "gross_pay", label: "Gross Pay", type: "number", required: true },
           { name: "net_pay", label: "Net Pay", type: "number", required: true },
         ],
@@ -1286,13 +1517,54 @@ const MODULE_CONFIG = {
         ],
       },
       {
+        key: "library-copy",
+        label: "Create Book Copy",
+        url: "/api/v1/library/copies",
+        method: "POST",
+        fields: [
+          {
+            name: "book_id",
+            label: "Book",
+            type: "entity-select",
+            source: "books",
+            valueType: "number",
+            required: true,
+          },
+          { name: "copy_code", label: "Copy Code", type: "text", required: true },
+          {
+            name: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "available", label: "Available" },
+              { value: "issued", label: "Issued" },
+              { value: "maintenance", label: "Maintenance" },
+            ],
+          },
+        ],
+      },
+      {
         key: "library-loan",
         label: "Create Loan",
         url: "/api/v1/library/loans",
         method: "POST",
         fields: [
-          { name: "copy_id", label: "Copy ID", type: "number", required: true },
-          { name: "borrower_user_id", label: "Borrower User ID", type: "number", required: true },
+          {
+            name: "copy_id",
+            label: "Book Copy",
+            type: "entity-select",
+            source: "book_copies",
+            valueType: "number",
+            required: true,
+          },
+          {
+            name: "borrower_user_id",
+            label: "Borrower",
+            type: "entity-select",
+            source: "users",
+            valueType: "number",
+            required: true,
+          },
           { name: "due_date", label: "Due Date", type: "date", required: true },
         ],
       },
@@ -1307,6 +1579,17 @@ const MODULE_CONFIG = {
           { key: "title", label: "Title" },
           { key: "author", label: "Author" },
           { key: "isbn", label: "ISBN" },
+        ],
+      },
+      {
+        key: "library-copy-list",
+        label: "Book Copies",
+        url: "/api/v1/library/copies",
+        columns: [
+          { key: "id", label: "ID" },
+          { key: "book_title", label: "Book" },
+          { key: "copy_code", label: "Copy Code" },
+          { key: "status", label: "Status" },
         ],
       },
       {
@@ -1339,7 +1622,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/hostel/rooms",
         method: "POST",
         fields: [
-          { name: "hostel_id", label: "Hostel ID", type: "number", required: true },
+          {
+            name: "hostel_id",
+            label: "Hostel",
+            type: "entity-select",
+            source: "hostels",
+            valueType: "number",
+            required: true,
+          },
           { name: "room_no", label: "Room No", type: "text", required: true },
           { name: "capacity", label: "Capacity", type: "number" },
         ],
@@ -1388,7 +1678,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/inventory/stock-moves",
         method: "POST",
         fields: [
-          { name: "item_id", label: "Item ID", type: "number", required: true },
+          {
+            name: "item_id",
+            label: "Item",
+            type: "entity-select",
+            source: "inventory_items",
+            valueType: "number",
+            required: true,
+          },
           { name: "move_type", label: "Move Type", type: "text", required: true, placeholder: "in/out" },
           { name: "quantity", label: "Quantity", type: "number", required: true },
           { name: "notes", label: "Notes", type: "text" },
@@ -1440,7 +1737,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/coaching/batches",
         method: "POST",
         fields: [
-          { name: "course_id", label: "Course ID", type: "number", required: true },
+          {
+            name: "course_id",
+            label: "Course",
+            type: "entity-select",
+            source: "courses",
+            valueType: "number",
+            required: true,
+          },
           { name: "name", label: "Batch Name", type: "text", required: true },
           { name: "timing", label: "Timing", type: "text" },
         ],
@@ -1451,7 +1755,14 @@ const MODULE_CONFIG = {
         url: "/api/v1/coaching/test-series",
         method: "POST",
         fields: [
-          { name: "batch_id", label: "Batch ID", type: "number", required: true },
+          {
+            name: "batch_id",
+            label: "Batch",
+            type: "entity-select",
+            source: "coaching_batches",
+            valueType: "number",
+            required: true,
+          },
           { name: "title", label: "Title", type: "text", required: true },
           { name: "total_marks", label: "Total Marks", type: "number" },
         ],
@@ -1462,8 +1773,22 @@ const MODULE_CONFIG = {
         url: "/api/v1/coaching/test-attempts",
         method: "POST",
         fields: [
-          { name: "test_series_id", label: "Test Series ID", type: "number", required: true },
-          { name: "student_id", label: "Student ID", type: "number", required: true },
+          {
+            name: "test_series_id",
+            label: "Test Series",
+            type: "entity-select",
+            source: "test_series",
+            valueType: "number",
+            required: true,
+          },
+          {
+            name: "student_id",
+            label: "Student",
+            type: "entity-select",
+            source: "students",
+            valueType: "number",
+            required: true,
+          },
           { name: "score", label: "Score", type: "number", required: true },
         ],
       },
@@ -1507,8 +1832,8 @@ const MODULE_CONFIG = {
         url: "/api/v1/coaching/test-attempts",
         columns: [
           { key: "id", label: "ID" },
-          { key: "test_series_id", label: "Series" },
-          { key: "student_id", label: "Student" },
+          { key: "test_series_title", label: "Series" },
+          { key: "student_name", label: "Student" },
           { key: "score", label: "Score" },
         ],
       },
@@ -1530,6 +1855,11 @@ function createActionCard(action, moduleKey, refreshLists, resultPanel, role) {
 
   const form = wrapper.querySelector("form");
   hydrateEntitySelects(form, action.fields || [], role);
+  form.addEventListener("change", (event) => {
+    const changed = event.target;
+    if (!changed || !changed.name) return;
+    hydrateEntitySelects(form, action.fields || [], role);
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {

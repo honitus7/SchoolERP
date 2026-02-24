@@ -250,6 +250,26 @@ def api_directory_classes():
     return ok(data)
 
 
+@bp.get("/directory/sections")
+@role_required("admin", "teacher", "parent", "student")
+def api_directory_sections():
+    user = current_user()
+    query = Section.query.filter_by(tenant_id=user.tenant_id)
+    class_ids = _allowed_class_ids_for_user(user)
+    if class_ids is not None:
+        if not class_ids:
+            return ok([])
+        query = query.filter(Section.class_id.in_(class_ids))
+
+    class_id = request.args.get("class_id", type=int)
+    if class_id:
+        if class_ids is not None and class_id not in set(class_ids):
+            return fail("Forbidden", status=403, code="forbidden")
+        query = query.filter(Section.class_id == class_id)
+    rows = query.order_by(Section.class_id.asc(), Section.name.asc()).all()
+    return ok([{"id": row.id, "class_id": row.class_id, "name": row.name} for row in rows])
+
+
 @bp.get("/directory/students")
 @role_required("admin", "teacher", "parent", "student")
 def api_directory_students():
@@ -571,12 +591,18 @@ def api_attendance_reports():
         query = query.filter(AttendanceSession.session_date <= date_to)
 
     rows = query.limit(500).all()
+    student_ids = sorted({row.student_id for row in rows})
+    student_map = {
+        row.id: row.full_name
+        for row in Student.query.filter(Student.tenant_id == user.tenant_id, Student.id.in_(student_ids)).all()
+    }
     return ok(
         [
             {
                 "id": r.id,
                 "session_id": r.session_id,
                 "student_id": r.student_id,
+                "student_name": student_map.get(r.student_id, f"Student-{r.student_id}"),
                 "status": r.status,
                 "remarks": r.remarks,
                 "session_date": r.session.session_date.isoformat() if r.session else None,
@@ -1110,6 +1136,55 @@ def api_fee_dues(student_id: int):
     return ok({"student_id": student_id, "outstanding_due": due})
 
 
+@bp.get("/fees/ledgers")
+@role_required("admin", "teacher", "parent", "student")
+def api_fee_ledgers_list():
+    user = current_user()
+    requested_student_id = request.args.get("student_id", type=int)
+    query = FeeLedger.query.filter_by(tenant_id=user.tenant_id)
+
+    allowed_students = _allowed_student_ids_for_user(user)
+    if requested_student_id:
+        if allowed_students is not None and requested_student_id not in set(allowed_students):
+            return fail("Forbidden", status=403, code="forbidden")
+        query = query.filter(FeeLedger.student_id == requested_student_id)
+    elif allowed_students is not None:
+        if not allowed_students:
+            return ok([])
+        query = query.filter(FeeLedger.student_id.in_(allowed_students))
+
+    rows = query.order_by(FeeLedger.created_at.desc()).limit(1000).all()
+    if not rows:
+        return ok([])
+
+    student_ids = sorted({row.student_id for row in rows})
+    installment_ids = sorted({row.installment_id for row in rows})
+    student_map = {
+        row.id: row.full_name
+        for row in Student.query.filter(Student.tenant_id == user.tenant_id, Student.id.in_(student_ids)).all()
+    }
+    installment_map = {
+        row.id: row.title
+        for row in FeeInstallment.query.filter(FeeInstallment.tenant_id == user.tenant_id, FeeInstallment.id.in_(installment_ids)).all()
+    }
+
+    return ok(
+        [
+            {
+                "id": row.id,
+                "student_id": row.student_id,
+                "student_name": student_map.get(row.student_id, f"Student-{row.student_id}"),
+                "installment_id": row.installment_id,
+                "installment_title": installment_map.get(row.installment_id, f"Installment-{row.installment_id}"),
+                "amount_due": row.amount_due,
+                "amount_paid": row.amount_paid,
+                "status": row.status,
+            }
+            for row in rows
+        ]
+    )
+
+
 @bp.post("/notices")
 @role_required("admin", "teacher")
 def api_notice_create():
@@ -1497,6 +1572,38 @@ def api_library_books():
     return ok([_serialize(x, ["id", "title", "author", "isbn"]) for x in rows])
 
 
+@bp.route("/library/copies", methods=["GET", "POST"])
+@role_required("admin", "teacher")
+def api_library_copies():
+    user = current_user()
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        valid, missing = require_fields(payload, ["book_id", "copy_code"])
+        if not valid:
+            return fail("Missing required fields", details={"missing": missing})
+        obj = create_record("book_copies", user.tenant_id, payload)
+        return ok(_serialize(obj, ["id", "book_id", "copy_code", "status"]))
+
+    rows = list_records("book_copies", user.tenant_id)
+    if not rows:
+        return ok([])
+
+    book_ids = sorted({row.book_id for row in rows})
+    book_map = {row.id: row.title for row in list_records("books", user.tenant_id) if row.id in set(book_ids)}
+    return ok(
+        [
+            {
+                "id": row.id,
+                "book_id": row.book_id,
+                "book_title": book_map.get(row.book_id, f"Book-{row.book_id}"),
+                "copy_code": row.copy_code,
+                "status": row.status,
+            }
+            for row in rows
+        ]
+    )
+
+
 @bp.route("/library/loans", methods=["GET", "POST"])
 @role_required("admin", "teacher")
 def api_library_loans():
@@ -1630,7 +1737,29 @@ def api_coaching_test_attempts():
         obj = create_record("test_attempts", user.tenant_id, payload)
         return ok(_serialize(obj, ["id", "test_series_id", "student_id", "score"]))
     rows = list_records("test_attempts", user.tenant_id)
-    return ok([_serialize(x, ["id", "test_series_id", "student_id", "score"]) for x in rows])
+    if not rows:
+        return ok([])
+
+    student_ids = sorted({row.student_id for row in rows})
+    series_ids = sorted({row.test_series_id for row in rows})
+    student_map = {
+        row.id: row.full_name
+        for row in Student.query.filter(Student.tenant_id == user.tenant_id, Student.id.in_(student_ids)).all()
+    }
+    series_map = {row.id: row.title for row in list_records("test_series", user.tenant_id) if row.id in set(series_ids)}
+    return ok(
+        [
+            {
+                "id": row.id,
+                "test_series_id": row.test_series_id,
+                "test_series_title": series_map.get(row.test_series_id, f"Series-{row.test_series_id}"),
+                "student_id": row.student_id,
+                "student_name": student_map.get(row.student_id, f"Student-{row.student_id}"),
+                "score": row.score,
+            }
+            for row in rows
+        ]
+    )
 
 
 @bp.post("/ai/chat")

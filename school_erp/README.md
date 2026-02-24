@@ -54,6 +54,50 @@ gunicorn -c gunicorn.conf.py app.wsgi:app
 
 Health endpoint: `GET /api/v1/health`
 
+## Heroku Deploy (Git + Gunicorn)
+This repository is ready for direct Heroku deploy from git root:
+- Root `Procfile` runs: `cd school_erp && gunicorn -c gunicorn.conf.py app.wsgi:app`
+- Root `requirements.txt` points to `school_erp/requirements.txt`
+
+### 1) Create app and set Python buildpack
+```bash
+heroku create <your-app-name>
+heroku buildpacks:set heroku/python -a <your-app-name>
+```
+
+### 2) Set required config vars manually
+```bash
+heroku config:set \
+FLASK_ENV=production \
+SECRET_KEY=<strong-random-secret> \
+JWT_SECRET_KEY=<strong-random-secret> \
+DATABASE_URL=<your-sqlite-or-sqlitecloud-url> \
+MAX_CONTENT_LENGTH=20971520 \
+RATELIMIT_STORAGE_URI=memory:// \
+-a <your-app-name>
+```
+
+Optional:
+```bash
+heroku config:set OPENAI_API_KEY=<your-openai-key> -a <your-app-name>
+heroku config:set SQLITECLOUD_DB=<your-db-file> -a <your-app-name>
+```
+
+### 3) Deploy from git
+```bash
+git push heroku main
+```
+
+### 4) Seed initial users (first deploy only)
+```bash
+heroku run "cd school_erp && flask --app app.wsgi seed" -a <your-app-name>
+```
+
+### 5) Open app
+```bash
+heroku open -a <your-app-name>
+```
+
 ## Seeded Users
 - `admin / admin123`
 - `teacher / teacher123`
